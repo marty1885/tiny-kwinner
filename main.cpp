@@ -6,7 +6,7 @@
 #include "tiny_dnn/tiny_dnn.h"
 #include "tiny_dnn/util/serialization_helper.h"
 
-#include "kwinnder.hpp"
+#include "kwinner.hpp"
 #include <thread>
 
 static void construct_net(tiny_dnn::network<tiny_dnn::sequential> &nn,
