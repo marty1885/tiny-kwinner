@@ -25,7 +25,9 @@ decreases performance.
 * [tiny-dnn](https://github.com/tiny-dnn/tiny-dnn)
 
 ## Results
+
 Performance of kwinner vs other regularizarion metheds.
+
 | Noise/Accuracy(%) |  Raw   |  Dropout |  Batch Norm |  k-winner | 
 |-------------------|--------|----------|-------------|-----------| 
 | 0                 | _98.17_|  95.73   |  93.08      |**95.81**  | 
