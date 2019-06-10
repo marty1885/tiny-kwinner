@@ -22,10 +22,11 @@ class kwinner_layer : public tiny_dnn::layer
 {
 public:
 	kwinner_layer() : layer({vector_type::data}, {vector_type::data}) {}
-	kwinner_layer(std::vector<size_t> input_shape, float density)
+	kwinner_layer(std::vector<size_t> input_shape, float density, float boost_factor = 0)
 		: layer({vector_type::data}, {vector_type::data})
 		, num_on_cells_(density*std::accumulate(input_shape.begin(), input_shape.end(), 1, std::multiplies<size_t>()))
-		, input_shape_(input_shape) {
+		, input_shape_(input_shape), boost_factor_(boost_factor)
+		, count_active_(std::accumulate(input_shape.begin(), input_shape.end(), 1, std::multiplies<size_t>())) {
 	}
 
 	std::string layer_type() const override {
@@ -56,10 +57,21 @@ public:
 		const size_t sample_count = in.size();
 		if (indices_.size() < sample_count)
 			indices_.resize(sample_count, std::vector<size_t>(num_on_cells_));
+
+		vec_t boost_factors = vec_t(in[0].size(), 1);
+		if(boost_factor_ != 0 && phase_ == net_phase::train) {
+			for(size_t i=0;i<boost_factors.size();i++) {
+				float target_density = (float)num_on_cells_/in[0].size();
+				boost_factors[i] = exp((target_density-count_active_[i]/num_forwards_)*boost_factor_);
+			}
+		}
 		
 		for_i(sample_count, [&](size_t sample) {
-			const vec_t &in_vec = in[sample];
+			vec_t in_vec = in[sample];
 			vec_t &out_vec = out[sample];
+			
+			for(size_t i=0;i<in_vec.size() && phase_ == net_phase::train;i++)
+				in_vec[i] *= boost_factors[i];
 
 			auto p = sort_permutation(in_vec, [](auto a, auto b){return a<b;});
 			for(size_t i=0;i<out_vec.size();i++)
@@ -67,10 +79,14 @@ public:
 			for(size_t i=0;i<num_on_cells_;i++) {
 				size_t idx = p[i];
 				out_vec[idx] = in_vec[idx];
+				
+				if(phase_ == net_phase::train)
+					count_active_[idx]++;
 			}
 
 			std::copy(p.begin(), p.begin()+num_on_cells_, indices_[sample].begin());
 		});
+		num_forwards_ += in_data.size();
 	}
 
 	void back_propagation(const std::vector<tensor_t *> &in_data,
@@ -90,16 +106,21 @@ public:
 				s[i] = 0;
 			for(size_t i=0;i<num_on_cells_;i++) {
 				size_t idx = indices_[sample][i];
-				s[idx] += curr_delta[sample][idx];
+				s[idx] = curr_delta[sample][idx];
 			}
 		});
 	}
-
-	friend struct serialization_buddy;
+	
+	void set_context(net_phase ctx) override { phase_ = ctx; }
 
 	size_t num_on_cells_;
 	std::vector<size_t> input_shape_;
 	std::vector<std::vector<size_t>> indices_;
+	float boost_factor_;
+	net_phase phase_;
+	
+	size_t num_forwards_ = 1;
+	std::vector<float> count_active_;
 };
 
 }
