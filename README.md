@@ -45,6 +45,7 @@ Performance of kwinner vs other regularizarion metheds.
 | 0.8               |  18.49 |  28.21   |  10.67      |**34.82**  | 
 
 With boosting (and adding gaussian noise instead of setting random value to pixels):
+
 | noise/accuracy(%) | Raw   | Dropout | Batch Norm | KWinner | KWinner+boosting | 
 |-------------------|-------|---------|------------|---------|------------------| 
 | 0.0               | 98.91 | 98.11   | 97.79      | 98.47   | 98.22            | 
